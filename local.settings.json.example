@@ -1,0 +1,24 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "FUNCTIONS_WORKER_RUNTIME": "python",
+    "SQL_SERVER": "<server>.database.windows.net",
+    "SQL_PORT": "1433",
+    "SQL_DATABASE": "<database>",
+    "SQL_USER": "<user>",
+    "SQL_PASSWORD": "<password>",
+    "SQL_ODBC_DRIVER": "ODBC Driver 18 for SQL Server",
+    "SQL_ENCRYPT": "yes",
+    "SQL_TRUST_SERVER_CERTIFICATE": "no",
+    "SQL_CONNECTION_TIMEOUT": "30",
+    "SALEOP_STATE_ID": "nieuw",
+    "SALEOP_CAMPAIGN_TYPE": "afspraak",
+    "SALEOP_VIP": "0",
+    "SALEOP_BATCH": "0",
+    "SALEOP_BELPOGINGEN": "0",
+    "SALEOP_DEFROSTED": "0",
+    "NEW_KLANT_NAAM": "Onbekend",
+    "NEW_PRODUCTNAAM": "Nieuw product"
+  }
+}
