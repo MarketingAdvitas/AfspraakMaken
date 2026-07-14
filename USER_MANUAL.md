@@ -46,7 +46,9 @@ Use either a full connection string or split SQL settings.
 ### Option B: Split settings
 - `SQL_SERVER`
 - `SQL_PORT` (default `1433`)
-- `SQL_DATABASE`
+- `SQL_DATABASE_PROD` (used when `run=prod`)
+- `SQL_DATABASE_TEST` (used when `run` is anything else)
+- `SQL_DATABASE` (optional fallback)
 - `SQL_USER`
 - `SQL_PASSWORD`
 - `SQL_ODBC_DRIVER` (default `ODBC Driver 18 for SQL Server`)

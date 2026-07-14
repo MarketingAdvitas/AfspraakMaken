@@ -35,7 +35,9 @@ Gedrag:
 Environment variables (aanbevolen, gesplitst):
 - SQL_SERVER
 - SQL_PORT (optioneel, default 1433)
-- SQL_DATABASE
+- SQL_DATABASE_PROD (voor run=prod)
+- SQL_DATABASE_TEST (voor alle andere run-waardes)
+- SQL_DATABASE (optionele fallback)
 - SQL_USER
 - SQL_PASSWORD
 - SQL_ODBC_DRIVER (optioneel, default ODBC Driver 18 for SQL Server)

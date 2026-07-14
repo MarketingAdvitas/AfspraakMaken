@@ -115,11 +115,31 @@ def _parse_payload(payload: dict) -> dict:
     }
 
 
-def _build_connection_string_from_parts() -> str:
+def _resolve_database_for_run(run_value) -> str:
+    run_text = str(run_value).strip().lower() if run_value is not None else ""
+
+    if run_text == "prod":
+        database = os.getenv("SQL_DATABASE_PROD")
+        if database:
+            return database
+
+    if run_text:
+        database = os.getenv("SQL_DATABASE_TEST")
+        if database:
+            return database
+
+    database = os.getenv("SQL_DATABASE")
+    if database:
+        return database
+
+    return ""
+
+
+def _build_connection_string_from_parts(run_value=None) -> str:
     driver = os.getenv("SQL_ODBC_DRIVER", "ODBC Driver 18 for SQL Server")
     server = os.getenv("SQL_SERVER")
     port = os.getenv("SQL_PORT", "1433")
-    database = os.getenv("SQL_DATABASE")
+    database = _resolve_database_for_run(run_value)
     user = os.getenv("SQL_USER")
     password = os.getenv("SQL_PASSWORD")
     encrypt = os.getenv("SQL_ENCRYPT", "yes")
@@ -130,7 +150,7 @@ def _build_connection_string_from_parts() -> str:
         name
         for name, value in {
             "SQL_SERVER": server,
-            "SQL_DATABASE": database,
+            "SQL_DATABASE_PROD/SQL_DATABASE_TEST/SQL_DATABASE": database,
             "SQL_USER": user,
             "SQL_PASSWORD": password,
         }.items()
@@ -154,10 +174,10 @@ def _build_connection_string_from_parts() -> str:
     )
 
 
-def _get_connection() -> pyodbc.Connection:
+def _get_connection(run_value=None) -> pyodbc.Connection:
     conn_str = os.getenv("SQL_CONNECTION_STRING")
     if not conn_str:
-        conn_str = _build_connection_string_from_parts()
+        conn_str = _build_connection_string_from_parts(run_value)
     return pyodbc.connect(conn_str)
 
 
@@ -494,7 +514,7 @@ def make_reservation(req: func.HttpRequest) -> func.HttpResponse:
     conn = None
     cursor = None
     try:
-        conn = _get_connection()
+        conn = _get_connection(prepared_payload.get("run"))
         cursor = conn.cursor()
         sp_result = _call_sp_dynamic(cursor, "dbo", "spMaakReservering", prepared_payload)
         conn.commit()
@@ -550,7 +570,7 @@ def _handle_availability(req: func.HttpRequest) -> func.HttpResponse:
     conn = None
     cursor = None
     try:
-        conn = _get_connection()
+        conn = _get_connection(payload.get("run"))
         cursor = conn.cursor()
         sp_result = _call_sp_dynamic(cursor, "dbo", "psAgendaPicker_GetAvailability", payload)
         conn.commit()
@@ -632,7 +652,7 @@ def afspraak(req: func.HttpRequest) -> func.HttpResponse:
     conn = None
     cursor = None
     try:
-        conn = _get_connection()
+        conn = _get_connection(payload.get("run") if isinstance(payload, dict) else None)
         cursor = conn.cursor()
 
         sp_result = _call_sp_maak_afspraak(cursor, data)
