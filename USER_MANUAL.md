@@ -14,7 +14,12 @@ Current functions:
    - Dynamically reads procedure parameters (`sys.parameters`) and matches request fields by name (case-insensitive, special chars ignored).
    - Includes support for keys like `MMJO/funnel`, `datum`, `tijd`, `campaign_id`, `adviseur_id`, `run`.
 
-> Note: In `host.json`, `routePrefix` is set to `""`, so routes are available directly as `/afspraak` and `/make-reservation`.
+3. **GET/POST `/availability`**
+   - Calls **`[dbo].[psAgendaPicker_GetAvailability]`**.
+   - Accepts query parameters and/or JSON body.
+   - Dynamically matches request fields to stored procedure parameters.
+
+> Note: In `host.json`, `routePrefix` is set to `""`, so routes are available directly as `/afspraak`, `/make-reservation`, and `/availability`.
 
 ---
 
@@ -66,6 +71,7 @@ func start
 Default local URL:
 - `http://localhost:7071/afspraak`
 - `http://localhost:7071/make-reservation`
+- `http://localhost:7071/availability`
 
 ---
 
@@ -129,12 +135,33 @@ curl -X POST "https://<your-app>.azurewebsites.net/make-reservation?code=<key>" 
   -d "{\"datum\":\"2026-07-14\",\"tijd\":\"10:30\",\"campaign_id\":123,\"adviseur_id\":[18,22],\"run\":\"A1\",\"MMJO/funnel\":\"web-lead\"}"
 ```
 
+### 6.3 Call `/availability`
+Method:
+- `GET` (query string) or `POST` (JSON body)
+
+Stored procedure:
+- `[dbo].[psAgendaPicker_GetAvailability]`
+
+Example GET:
+
+```powershell
+curl "https://<your-app>.azurewebsites.net/availability?code=<key>&datum=2026-07-14&adviseur_id=18"
+```
+
+Example POST:
+
+```powershell
+curl -X POST "https://<your-app>.azurewebsites.net/availability?code=<key>" ^
+  -H "Content-Type: application/json" ^
+  -d "{\"datum\":\"2026-07-14\",\"adviseur_id\":18}"
+```
+
 Response includes:
 - `result`
 - `input`
 - `matched_parameters`
 - `stored_procedure_output`
-- `stored_procedure_result`
+- `stored_procedure_result
 
 ---
 

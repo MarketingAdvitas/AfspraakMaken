@@ -442,6 +442,25 @@ def _validate_make_reservation_payload(payload: dict):
         raise ValidationError("Parameter 'MMJO/funnel' (of 'mmjo_funnel'/'funnel') is verplicht.")
 
 
+def _extract_request_payload(req: func.HttpRequest) -> dict:
+    payload = {key: req.params.get(key) for key in req.params.keys()}
+
+    has_body = bool(req.get_body())
+    if not has_body:
+        return payload
+
+    try:
+        body_payload = req.get_json()
+    except ValueError as ex:
+        raise ValidationError("Body moet geldige JSON zijn.") from ex
+
+    if not isinstance(body_payload, dict):
+        raise ValidationError("Body moet een JSON object zijn.")
+
+    payload.update(body_payload)
+    return payload
+
+
 @app.route(route="make-reservation", methods=["POST"])
 def make_reservation(req: func.HttpRequest) -> func.HttpResponse:
     logging.info("Make-reservation API aangeroepen")
@@ -502,6 +521,69 @@ def make_reservation(req: func.HttpRequest) -> func.HttpResponse:
         )
     except Exception:
         logging.exception("Fout bij aanroepen van spMaakReservering")
+        if conn:
+            conn.rollback()
+        return func.HttpResponse(
+            json.dumps({"error": "Interne fout bij uitvoeren van stored procedure."}),
+            status_code=500,
+            mimetype="application/json",
+        )
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+
+@app.route(route="availability", methods=["GET", "POST"])
+def availability(req: func.HttpRequest) -> func.HttpResponse:
+    logging.info("Availability API aangeroepen")
+
+    try:
+        payload = _extract_request_payload(req)
+    except ValidationError as ex:
+        return func.HttpResponse(
+            json.dumps({"error": str(ex)}),
+            status_code=400,
+            mimetype="application/json",
+        )
+
+    conn = None
+    cursor = None
+    try:
+        conn = _get_connection()
+        cursor = conn.cursor()
+        sp_result = _call_sp_dynamic(cursor, "dbo", "psAgendaPicker_GetAvailability", payload)
+        conn.commit()
+
+        return func.HttpResponse(
+            json.dumps(
+                {
+                    "result": "success",
+                    "input": payload,
+                    "matched_parameters": sp_result["matched_parameters"],
+                    "stored_procedure_output": sp_result["output"],
+                    "stored_procedure_result": sp_result["result_sets"],
+                },
+                default=str,
+            ),
+            status_code=200,
+            mimetype="application/json",
+        )
+    except RuntimeError as ex:
+        return func.HttpResponse(
+            json.dumps({"error": str(ex)}),
+            status_code=500,
+            mimetype="application/json",
+        )
+    except ValidationError as ex:
+        return func.HttpResponse(
+            json.dumps({"error": str(ex)}),
+            status_code=400,
+            mimetype="application/json",
+        )
+    except Exception:
+        logging.exception("Fout bij aanroepen van psAgendaPicker_GetAvailability")
         if conn:
             conn.rollback()
         return func.HttpResponse(

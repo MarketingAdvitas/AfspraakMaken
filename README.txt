@@ -106,5 +106,11 @@ Verplicht voor dit endpoint:
 Voorbeeld:
 POST https://<jouw-host>/api/make-reservation
 
+Availability endpoint (hersteld):
+GET/POST /api/availability (of /availability als routePrefix leeg staat)
+- Roept [dbo].[psAgendaPicker_GetAvailability] aan.
+- Accepteert querystring en/of JSON body.
+- Matcht procedure-parameters dynamisch.
+
 Volledige handleiding:
 Zie USER_MANUAL.md
