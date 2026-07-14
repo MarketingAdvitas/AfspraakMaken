@@ -535,8 +535,7 @@ def make_reservation(req: func.HttpRequest) -> func.HttpResponse:
             conn.close()
 
 
-@app.route(route="availability", methods=["GET", "POST"])
-def availability(req: func.HttpRequest) -> func.HttpResponse:
+def _handle_availability(req: func.HttpRequest) -> func.HttpResponse:
     logging.info("Availability API aangeroepen")
 
     try:
@@ -596,6 +595,16 @@ def availability(req: func.HttpRequest) -> func.HttpResponse:
             cursor.close()
         if conn:
             conn.close()
+
+
+@app.route(route="availability", methods=["GET", "POST"])
+def availability(req: func.HttpRequest) -> func.HttpResponse:
+    return _handle_availability(req)
+
+
+@app.route(route="api/availability", methods=["GET", "POST"])
+def availability_api(req: func.HttpRequest) -> func.HttpResponse:
+    return _handle_availability(req)
 
 
 @app.route(route="afspraak", methods=["POST"])

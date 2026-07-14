@@ -14,12 +14,12 @@ Current functions:
    - Dynamically reads procedure parameters (`sys.parameters`) and matches request fields by name (case-insensitive, special chars ignored).
    - Includes support for keys like `MMJO/funnel`, `datum`, `tijd`, `campaign_id`, `adviseur_id`, `run`.
 
-3. **GET/POST `/availability`**
+3. **GET/POST `/availability` and `/api/availability`**
    - Calls **`[dbo].[psAgendaPicker_GetAvailability]`**.
    - Accepts query parameters and/or JSON body.
    - Dynamically matches request fields to stored procedure parameters.
 
-> Note: In `host.json`, `routePrefix` is set to `""`, so routes are available directly as `/afspraak`, `/make-reservation`, and `/availability`.
+> Note: In `host.json`, `routePrefix` is set to `""`, so routes are available directly as `/afspraak`, `/make-reservation`, `/availability`, and `/api/availability`.
 
 ---
 
