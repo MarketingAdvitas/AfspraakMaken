@@ -380,6 +380,111 @@ def _to_sql_value(value):
     return value
 
 
+def _payload_first(payload: dict, *keys, default=None):
+    for key in keys:
+        if key in payload and payload[key] is not None:
+            return payload[key]
+    return default
+
+
+def _call_sp_maak_reservering_fallback(cursor, payload: dict) -> dict:
+    klant_id = _optional_int(_payload_first(payload, "klant_id", default=0), "klant_id")
+    campagne_id = _optional_int(_payload_first(payload, "campaign_id", "campagne_id"), "campaign_id")
+    reservering_id = _optional_int(_payload_first(payload, "reservering_id"), "reservering_id")
+
+    if campagne_id is None:
+        raise ValidationError("Parameter 'campaign_id' (of 'campagne_id') is verplicht.")
+
+    cursor.execute(
+        """
+        DECLARE @klant_id INT = ?;
+        DECLARE @campagne_id INT = ?;
+        DECLARE @reservering_id INT = ?;
+        DECLARE @campagne_naam NVARCHAR(255);
+        DECLARE @foutmelding NVARCHAR(1000);
+        DECLARE @foutcode INT;
+        DECLARE @fout_stap NVARCHAR(100);
+        DECLARE @fout_parameter NVARCHAR(255);
+        DECLARE @fout_waarde NVARCHAR(500);
+        DECLARE @fout_detailleer NVARCHAR(2000);
+
+        EXEC [dbo].[spMaakReservering]
+            @klant_id = @klant_id OUTPUT,
+            @campagne_id = @campagne_id OUTPUT,
+            @adviseur_id = ?,
+            @datum = ?,
+            @tijd = ?,
+            @duur_kwartieren = ?,
+            @naam = ?,
+            @email = ?,
+            @informatie = ?,
+            @funnel = ?,
+            @reservering_id = @reservering_id OUTPUT,
+            @campagne_naam = @campagne_naam OUTPUT,
+            @foutmelding = @foutmelding OUTPUT,
+            @foutcode = @foutcode OUTPUT,
+            @fout_stap = @fout_stap OUTPUT,
+            @fout_parameter = @fout_parameter OUTPUT,
+            @fout_waarde = @fout_waarde OUTPUT,
+            @fout_detailleer = @fout_detailleer OUTPUT;
+
+        SELECT
+            @klant_id AS klant_id,
+            @campagne_id AS campagne_id,
+            @reservering_id AS reservering_id,
+            @campagne_naam AS campagne_naam,
+            @foutmelding AS foutmelding,
+            @foutcode AS foutcode,
+            @fout_stap AS fout_stap,
+            @fout_parameter AS fout_parameter,
+            @fout_waarde AS fout_waarde,
+            @fout_detailleer AS fout_detailleer;
+        """,
+        klant_id,
+        campagne_id,
+        reservering_id,
+        _payload_first(payload, "adviseur_id"),
+        _payload_first(payload, "datum"),
+        _payload_first(payload, "tijd"),
+        _optional_int(_payload_first(payload, "duur_kwartieren"), "duur_kwartieren"),
+        _payload_first(payload, "naam"),
+        _payload_first(payload, "email"),
+        _payload_first(payload, "informatie"),
+        _payload_first(payload, "MMJO/funnel", "mmjo_funnel", "funnel"),
+    )
+
+    result_sets = _read_all_result_sets(cursor)
+    output = {}
+    if result_sets and result_sets[-1]:
+        output = result_sets[-1][0]
+        result_sets = result_sets[:-1]
+
+    return {
+        "output": output,
+        "result_sets": result_sets,
+        "matched_parameters": [
+            "klant_id",
+            "campagne_id",
+            "adviseur_id",
+            "datum",
+            "tijd",
+            "duur_kwartieren",
+            "naam",
+            "email",
+            "informatie",
+            "funnel",
+            "reservering_id",
+            "campagne_naam",
+            "foutmelding",
+            "foutcode",
+            "fout_stap",
+            "fout_parameter",
+            "fout_waarde",
+            "fout_detailleer",
+        ],
+    }
+
+
 def _call_sp_dynamic(cursor, schema_name: str, procedure_name: str, payload: dict) -> dict:
     parameters = _get_sp_parameters(cursor, schema_name, procedure_name)
     values = _build_value_lookup(payload)
@@ -525,7 +630,13 @@ def make_reservation(req: func.HttpRequest) -> func.HttpResponse:
     try:
         conn = _get_connection(prepared_payload.get("run"))
         cursor = conn.cursor()
-        sp_result = _call_sp_dynamic(cursor, "dbo", "spMaakReservering", prepared_payload)
+        try:
+            sp_result = _call_sp_dynamic(cursor, "dbo", "spMaakReservering", prepared_payload)
+        except RuntimeError as ex:
+            if "heeft geen parameters of bestaat niet" not in str(ex):
+                raise
+            logging.warning("Dynamische parameter lookup faalde; fallback naar vaste spMaakReservering-call.")
+            sp_result = _call_sp_maak_reservering_fallback(cursor, prepared_payload)
         conn.commit()
 
         return func.HttpResponse(
