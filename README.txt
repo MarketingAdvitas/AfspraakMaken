@@ -100,9 +100,12 @@ Gedrag:
 Verplicht voor dit endpoint:
 - datum
 - tijd
-- campaign_id
+- duur_kwartieren
+- campaign_id (of campagne_id)
 - adviseur_id
 - run
+
+Alleen verplicht bij campaign_id/campagne_id = 230:
 - MMJO/funnel (of mmjo_funnel / funnel)
 
 Voorbeeld:

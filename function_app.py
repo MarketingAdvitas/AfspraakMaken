@@ -447,19 +447,28 @@ def _call_sp_dynamic(cursor, schema_name: str, procedure_name: str, payload: dic
 
 
 def _validate_make_reservation_payload(payload: dict):
-    required_fields = ["datum", "tijd", "campaign_id", "adviseur_id", "run"]
+    required_fields = ["datum", "tijd", "adviseur_id", "run", "duur_kwartieren"]
 
     for field in required_fields:
         value = payload.get(field)
         if value is None or (isinstance(value, str) and not value.strip()):
             raise ValidationError(f"Parameter '{field}' is verplicht.")
 
-    funnel_value = payload.get("MMJO/funnel")
-    if funnel_value is None:
-        funnel_value = payload.get("mmjo_funnel", payload.get("funnel"))
+    campaign_value = payload.get("campaign_id", payload.get("campagne_id"))
+    if campaign_value is None or (isinstance(campaign_value, str) and not campaign_value.strip()):
+        raise ValidationError("Parameter 'campaign_id' (of 'campagne_id') is verplicht.")
+    try:
+        campagne_id = int(campaign_value)
+    except (TypeError, ValueError) as ex:
+        raise ValidationError("Parameter 'campaign_id' (of 'campagne_id') moet een getal zijn.") from ex
 
-    if funnel_value is None or (isinstance(funnel_value, str) and not funnel_value.strip()):
-        raise ValidationError("Parameter 'MMJO/funnel' (of 'mmjo_funnel'/'funnel') is verplicht.")
+    if campagne_id == 230:
+        funnel_value = payload.get("MMJO/funnel")
+        if funnel_value is None:
+            funnel_value = payload.get("mmjo_funnel", payload.get("funnel"))
+
+        if funnel_value is None or (isinstance(funnel_value, str) and not funnel_value.strip()):
+            raise ValidationError("Parameter 'MMJO/funnel' (of 'mmjo_funnel'/'funnel') is verplicht bij campaign_id 230.")
 
 
 def _extract_request_payload(req: func.HttpRequest) -> dict:

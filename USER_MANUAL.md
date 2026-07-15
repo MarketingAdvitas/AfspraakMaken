@@ -124,9 +124,12 @@ curl -X POST "https://<your-app>.azurewebsites.net/afspraak?code=<key>" ^
 Minimum required fields:
 - `datum`
 - `tijd`
-- `campaign_id`
+- `duur_kwartieren`
+- `campaign_id` (or `campagne_id`)
 - `adviseur_id`
 - `run`
+
+Required only when `campaign_id`/`campagne_id` = `230`:
 - `MMJO/funnel` (or `mmjo_funnel` / `funnel`)
 
 Example:
