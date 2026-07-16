@@ -88,7 +88,7 @@ Niet de root URL zonder pad, anders krijg je de standaard Azure "up and running"
 ---
 
 Nieuw endpoint:
-POST /api/make-reservation (of /make-reservation als routePrefix leeg staat)
+POST /api/reservering (of /reservering als routePrefix leeg staat)
 
 Gedrag:
 - Roept alleen [dbo].[spMaakReservering] aan.
@@ -109,10 +109,10 @@ Alleen verplicht bij campaign_id/campagne_id = 230:
 - MMJO/funnel (of mmjo_funnel / funnel)
 
 Voorbeeld:
-POST https://<jouw-host>/api/make-reservation
+POST https://<jouw-host>/api/reservering
 
 Availability endpoint (hersteld):
-GET/POST /availability én /api/availability
+GET/POST /availability
 - Roept [dbo].[psAgendaPicker_GetAvailability] aan.
 - Accepteert querystring en/of JSON body.
 - Matcht procedure-parameters dynamisch.

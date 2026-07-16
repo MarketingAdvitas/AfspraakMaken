@@ -380,6 +380,13 @@ def _to_sql_value(value):
     return value
 
 
+def _extract_db_error_details(ex: pyodbc.Error) -> dict:
+    return {
+        "driver_error": str(ex),
+        "odbc_args": [str(arg) for arg in ex.args],
+    }
+
+
 def _payload_first(payload: dict, *keys, default=None):
     for key in keys:
         if key in payload and payload[key] is not None:
@@ -595,9 +602,9 @@ def _extract_request_payload(req: func.HttpRequest) -> dict:
     return payload
 
 
-@app.route(route="make-reservation", methods=["POST"])
-def make_reservation(req: func.HttpRequest) -> func.HttpResponse:
-    logging.info("Make-reservation API aangeroepen")
+@app.route(route="reservering", methods=["POST"])
+def reservering(req: func.HttpRequest) -> func.HttpResponse:
+    logging.info("Reservering API aangeroepen")
 
     try:
         payload = req.get_json()
@@ -637,6 +644,30 @@ def make_reservation(req: func.HttpRequest) -> func.HttpResponse:
                 raise
             logging.warning("Dynamische parameter lookup faalde; fallback naar vaste spMaakReservering-call.")
             sp_result = _call_sp_maak_reservering_fallback(cursor, prepared_payload)
+
+        sp_output = sp_result.get("output", {})
+        sp_foutcode = sp_output.get("foutcode")
+        try:
+            parsed_foutcode = int(sp_foutcode) if sp_foutcode is not None else 0
+        except (TypeError, ValueError):
+            parsed_foutcode = 0
+
+        if parsed_foutcode != 0:
+            if conn:
+                conn.rollback()
+            return func.HttpResponse(
+                json.dumps(
+                    {
+                        "error": "Stored procedure gaf een foutmelding.",
+                        "stored_procedure_output": sp_output,
+                        "matched_parameters": sp_result.get("matched_parameters", []),
+                    },
+                    default=str,
+                ),
+                status_code=500,
+                mimetype="application/json",
+            )
+
         conn.commit()
 
         return func.HttpResponse(
@@ -659,12 +690,33 @@ def make_reservation(req: func.HttpRequest) -> func.HttpResponse:
             status_code=500,
             mimetype="application/json",
         )
-    except Exception:
+    except pyodbc.Error as ex:
+        logging.exception("Databasefout bij aanroepen van spMaakReservering")
+        if conn:
+            conn.rollback()
+        return func.HttpResponse(
+            json.dumps(
+                {
+                    "error": "Databasefout bij uitvoeren van stored procedure.",
+                    "details": _extract_db_error_details(ex),
+                },
+                default=str,
+            ),
+            status_code=500,
+            mimetype="application/json",
+        )
+    except Exception as ex:
         logging.exception("Fout bij aanroepen van spMaakReservering")
         if conn:
             conn.rollback()
         return func.HttpResponse(
-            json.dumps({"error": "Interne fout bij uitvoeren van stored procedure."}),
+            json.dumps(
+                {
+                    "error": "Interne fout bij uitvoeren van stored procedure.",
+                    "details": str(ex),
+                },
+                default=str,
+            ),
             status_code=500,
             mimetype="application/json",
         )
@@ -739,11 +791,6 @@ def _handle_availability(req: func.HttpRequest) -> func.HttpResponse:
 
 @app.route(route="availability", methods=["GET", "POST"])
 def availability(req: func.HttpRequest) -> func.HttpResponse:
-    return _handle_availability(req)
-
-
-@app.route(route="api/availability", methods=["GET", "POST"])
-def availability_api(req: func.HttpRequest) -> func.HttpResponse:
     return _handle_availability(req)
 
 

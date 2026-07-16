@@ -9,17 +9,17 @@ Current functions:
    - Calls **`[dbo].[spMaakAfspraak]`** with fixed parameter mapping.
    - Supports advisor list input and returns output/result sets from the procedure.
 
-2. **POST `/make-reservation`**
+2. **POST `/reservering`**
    - Calls **`[dbo].[spMaakReservering]`**.
    - Dynamically reads procedure parameters (`sys.parameters`) and matches request fields by name (case-insensitive, special chars ignored).
    - Includes support for keys like `MMJO/funnel`, `datum`, `tijd`, `campaign_id`, `adviseur_id`, `run`.
 
-3. **GET/POST `/availability` and `/api/availability`**
+3. **GET/POST `/availability`**
    - Calls **`[dbo].[psAgendaPicker_GetAvailability]`**.
    - Accepts query parameters and/or JSON body.
    - Dynamically matches request fields to stored procedure parameters.
 
-> Note: In `host.json`, `routePrefix` is set to `""`, so routes are available directly as `/afspraak`, `/make-reservation`, `/availability`, and `/api/availability`.
+> Note: In `host.json`, `routePrefix` is set to `""`, so routes are available directly as `/afspraak`, `/reservering`, and `/availability`.
 
 ---
 
@@ -72,7 +72,7 @@ func start
 
 Default local URL:
 - `http://localhost:7071/afspraak`
-- `http://localhost:7071/make-reservation`
+- `http://localhost:7071/reservering`
 - `http://localhost:7071/availability`
 
 ---
@@ -120,7 +120,7 @@ curl -X POST "https://<your-app>.azurewebsites.net/afspraak?code=<key>" ^
   -d "{\"klant_id\":0,\"adviseur_id\":\"18,22,35\",\"datum\":\"2026-06-24\",\"tijd\":\"14:30\",\"duur_kwartieren\":2,\"campagne_id\":77}"
 ```
 
-### 6.2 Call `/make-reservation`
+### 6.2 Call `/reservering`
 Minimum required fields:
 - `datum`
 - `tijd`
@@ -135,7 +135,7 @@ Required only when `campaign_id`/`campagne_id` = `230`:
 Example:
 
 ```powershell
-curl -X POST "https://<your-app>.azurewebsites.net/make-reservation?code=<key>" ^
+curl -X POST "https://<your-app>.azurewebsites.net/reservering?code=<key>" ^
   -H "Content-Type: application/json" ^
   -d "{\"datum\":\"2026-07-14\",\"tijd\":\"10:30\",\"campaign_id\":123,\"adviseur_id\":[18,22],\"run\":\"A1\",\"MMJO/funnel\":\"web-lead\"}"
 ```
@@ -187,7 +187,7 @@ Response includes:
      - Stored procedure existence and parameter names/types
 
 5. **Azure page shows only "up and running"**
-   - You called root URL instead of function path. Use `/afspraak` or `/make-reservation`.
+   - You called root URL instead of function path. Use `/afspraak` or `/reservering`.
 
 ---
 
